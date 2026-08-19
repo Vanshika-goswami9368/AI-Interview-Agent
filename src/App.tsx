@@ -10,8 +10,8 @@ import { Candidate, Curriculum, ChatMessage, FinalFeedback } from './types';
 import { analyzeCandidateAnswersLocal, processLocalInterviewStep } from './server/aiService';
 import { getOrCreateSession } from './server/sessionStore';
 
-import defaultCandidatesData from './data/candidates.json';
-import defaultCurriculumData from './data/curriculum.json';
+import { candidatesData as defaultCandidatesData } from './data/candidatesData';
+import { curriculumData as defaultCurriculumData } from './data/curriculumData';
 
 export function App() {
   const [candidates, setCandidates] = useState<Candidate[]>(

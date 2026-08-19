@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import candidatesData from '../data/candidates.json';
-import curriculumData from '../data/curriculum.json';
+import { candidatesData } from '../data/candidatesData';
+import { curriculumData } from '../data/curriculumData';
 import { getOrCreateSession, getSession } from './sessionStore';
 import {
   processInterviewStep,

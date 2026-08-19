@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { InterviewSession, FinalFeedback, Candidate, QuestionMemoryItem, SelectedDayPlan, QuestionEvaluationDetail } from '../types';
-import curriculumData from '../data/curriculum.json';
+import { curriculumData } from '../data/curriculumData';
 
 // Helper to format memory layer (previous questions, answers, scores, and evaluations)
 export function formatMemoryContext(memoryLayer?: QuestionMemoryItem[]): string {

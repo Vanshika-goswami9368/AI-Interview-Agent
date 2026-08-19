@@ -1,5 +1,5 @@
 import { InterviewSession, Candidate } from '../types';
-import candidatesData from '../data/candidates.json';
+import { candidatesData } from '../data/candidatesData';
 
 const sessions = new Map<string, InterviewSession>();
 
