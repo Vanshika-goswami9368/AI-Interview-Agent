@@ -164,7 +164,10 @@ export function App() {
   // Load backend data if available
   useEffect(() => {
     fetch('/api/candidates')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Candidates status ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data.candidates && data.candidates.length > 0) {
           setCandidates(data.candidates);
@@ -173,16 +176,23 @@ export function App() {
           }
         }
       })
-      .catch((err) => console.log('Using local candidates data fallback'));
+      .catch(() => {
+        // Safe bundled fallback
+      });
 
     fetch('/api/curriculum')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Curriculum status ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data.modules && data.days) {
           setCurriculum(data);
         }
       })
-      .catch((err) => console.log('Using local curriculum data fallback'));
+      .catch(() => {
+        // Safe bundled fallback
+      });
   }, []);
 
   // Initialize new Interview session
