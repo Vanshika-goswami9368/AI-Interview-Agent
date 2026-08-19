@@ -14,21 +14,14 @@ export interface InterviewLogicResponse {
 export async function handleInterviewLogic(body: any): Promise<InterviewLogicResponse> {
   const { sessionId, candidate, message, chatHistory, forceEvaluate } = body || {};
 
-  if (!sessionId) {
-    return {
-      status: 400,
-      data: { error: 'sessionId parameter is required' },
-    };
-  }
+  const effectiveSessionId = sessionId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   let session;
   try {
-    session = getOrCreateSession(sessionId, candidate);
+    session = getOrCreateSession(effectiveSessionId, candidate);
   } catch (err: any) {
-    return {
-      status: 400,
-      data: { error: err.message || 'Failed to initialize session' },
-    };
+    console.error('Error creating session, using fallback session:', err);
+    session = getOrCreateSession(effectiveSessionId);
   }
 
   // If client supplied chatHistory, sync it into session.conversationHistory

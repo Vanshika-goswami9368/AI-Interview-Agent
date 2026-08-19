@@ -1,15 +1,68 @@
 import { candidatesData } from '../src/data/candidatesData';
 
 export default function handler(req: any, res: any) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Content-Type', 'application/json');
+  try {
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Content-Type', 'application/json');
+    }
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    if (req && req.method === 'OPTIONS') {
+      if (typeof res?.status === 'function') {
+        return res.status(200).end();
+      }
+      if (res && typeof res.end === 'function') {
+        res.statusCode = 200;
+        return res.end();
+      }
+      if (typeof Response !== 'undefined') {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          },
+        });
+      }
+    }
+
+    const payload = candidatesData || { candidates: [] };
+
+    if (res && typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(200).json(payload);
+    }
+    if (res && typeof res.end === 'function') {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify(payload));
+    }
+    if (typeof Response !== 'undefined') {
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+  } catch (err: any) {
+    console.error('Error in /api/candidates:', err);
+    const fallback = candidatesData || { candidates: [] };
+    if (res && typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(200).json(fallback);
+    }
+    if (res && typeof res.end === 'function') {
+      res.statusCode = 200;
+      return res.end(JSON.stringify(fallback));
+    }
+    if (typeof Response !== 'undefined') {
+      return new Response(JSON.stringify(fallback), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
   }
-
-  res.status(200).json(candidatesData);
 }

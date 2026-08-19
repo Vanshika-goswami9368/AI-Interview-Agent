@@ -6,7 +6,7 @@ const sessions = new Map<string, InterviewSession>();
 export function getOrCreateSession(sessionId: string, candidate?: Candidate): InterviewSession {
   let session = sessions.get(sessionId);
   if (!session) {
-    const fallbackCandidate = (candidatesData as unknown as Candidate[])[0];
+    const fallbackCandidate = candidatesData?.candidates?.[0];
     const effectiveCandidate = candidate || fallbackCandidate;
     if (!effectiveCandidate) {
       throw new Error(`Session ${sessionId} not found and no candidate provided.`);
