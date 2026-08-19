@@ -892,7 +892,20 @@ function generateLocalResponse(
 export function processLocalInterviewStep(
   session: InterviewSession,
   candidateMessage?: string
-) {
+): {
+  reply: string;
+  done: boolean;
+  feedback?: FinalFeedback;
+  questionNumber?: number;
+  daysCoveredCount?: number;
+  currentDayTitle?: string;
+  topic?: string;
+  curriculumDay?: number;
+  isFollowUp?: boolean;
+  isClarificationRequest?: boolean;
+  isOffTopic?: boolean;
+  currentDifficulty?: string;
+} {
   if (!session.memoryLayer) {
     session.memoryLayer = [];
   }
@@ -1629,6 +1642,12 @@ export async function processInterviewStep(
       feedback: session.feedback,
       questionNumber: session.questionsAsked,
       daysCoveredCount: session.daysCovered.length,
+      topic: undefined,
+      curriculumDay: undefined,
+      isFollowUp: false,
+      isClarificationRequest: false,
+      isOffTopic: false,
+      currentDifficulty: session.currentDifficulty,
     };
   }
 

@@ -21,7 +21,7 @@ export async function handleInterviewLogic(body: any): Promise<InterviewLogicRes
     session = getOrCreateSession(effectiveSessionId, candidate);
   } catch (err: any) {
     console.error('Error creating session, using fallback session:', err);
-    session = getOrCreateSession(effectiveSessionId);
+    session = getOrCreateSession(effectiveSessionId, undefined);
   }
 
   // If client supplied chatHistory, sync it into session.conversationHistory
@@ -99,7 +99,7 @@ export async function handleInterviewLogic(body: any): Promise<InterviewLogicRes
   }
 
   try {
-    const result = await processInterviewStep(session, message);
+    const result: any = await processInterviewStep(session, message);
     return {
       status: 200,
       data: {
@@ -118,7 +118,7 @@ export async function handleInterviewLogic(body: any): Promise<InterviewLogicRes
     };
   } catch {
     try {
-      const result = processLocalInterviewStep(session, message);
+      const result: any = processLocalInterviewStep(session, message);
       return {
         status: 200,
         data: {

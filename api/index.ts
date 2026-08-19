@@ -1,6 +1,9 @@
-import app from '../src/server/app';
+import candidatesHandler from './candidates';
+import curriculumHandler from './curriculum';
+import interviewHandler from './interview';
+import healthHandler from './health';
 
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   try {
     if (res && typeof res.setHeader === 'function') {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,9 +22,24 @@ export default function handler(req: any, res: any) {
       return;
     }
 
-    return app(req, res);
+    const url = req?.url || '';
+    if (url.includes('/candidates')) {
+      return candidatesHandler(req, res);
+    }
+    if (url.includes('/curriculum')) {
+      return curriculumHandler(req, res);
+    }
+    if (url.includes('/interview')) {
+      return interviewHandler(req, res);
+    }
+    if (url.includes('/health')) {
+      return healthHandler(req, res);
+    }
+
+    // Default to health status
+    return healthHandler(req, res);
   } catch (err: any) {
-    console.error('Error in api/index:', err);
+    console.error('Error in /api/index:', err);
     if (res && typeof res.status === 'function' && typeof res.json === 'function') {
       return res.status(200).json({ status: 'ok' });
     }
