@@ -7,7 +7,8 @@ import { PerformanceReport } from './components/PerformanceReport';
 import { CandidateRoster } from './components/CandidateRoster';
 import { CurriculumBrowser } from './components/CurriculumBrowser';
 import { Candidate, Curriculum, ChatMessage, FinalFeedback } from './types';
-import { analyzeCandidateAnswersLocal } from './server/aiService';
+import { analyzeCandidateAnswersLocal, processLocalInterviewStep } from './server/aiService';
+import { getOrCreateSession } from './server/sessionStore';
 
 import defaultCandidatesData from './data/candidates.json';
 import defaultCurriculumData from './data/curriculum.json';
@@ -245,26 +246,42 @@ export function App() {
         }
       }
     } catch (err: any) {
-      console.error('Error starting interview:', err);
-      const isAbort = err.name === 'AbortError';
-      const initialProject = candidate.member.projects?.[0]?.name ? ` I noticed your work on ${candidate.member.projects[0].name}.` : '';
-      
-      const errorGreeting = isAbort
-        ? `Welcome, ${candidate.member.name}! The initial connection took a moment, but let's begin: given your experience as a ${candidate.member.jobRole}${initialProject}, what key engineering considerations guide your technical choices?`
-        : `Welcome, ${candidate.member.name}! Given your background as a ${candidate.member.jobRole}${initialProject}, let's begin your technical evaluation. What core architectural principles do you prioritize in production setups?`;
-
-      setChatHistory([
-        {
-          id: `msg_ai_1`,
-          sender: 'ai',
-          text: errorGreeting,
-          timestamp: new Date().toLocaleTimeString(),
-          topic: 'Technical Foundations',
-          curriculumDay: 7,
-        },
-      ]);
-      setQuestionsAsked(1);
-      setDaysCovered([7]);
+      console.error('API call failed, switching to local interview engine:', err);
+      try {
+        const localSession = getOrCreateSession(newSessionId, candidate);
+        const localResult = processLocalInterviewStep(localSession);
+        const initialDay = localResult.curriculumDay || 1;
+        setChatHistory([
+          {
+            id: `msg_ai_1`,
+            sender: 'ai',
+            text: localResult.reply,
+            timestamp: new Date().toLocaleTimeString(),
+            topic: localResult.topic || 'Curriculum Overview',
+            curriculumDay: initialDay,
+            isFollowUp: false,
+          },
+        ]);
+        setQuestionsAsked(localResult.questionNumber || 1);
+        setDaysCovered([initialDay]);
+        setTopicsCovered([localResult.topic || 'Curriculum Overview']);
+      } catch (localErr) {
+        console.error('Local fallback error:', localErr);
+        const initialProject = candidate.member.projects?.[0]?.name ? ` I noticed your work on ${candidate.member.projects[0].name}.` : '';
+        const errorGreeting = `Welcome, ${candidate.member.name}! Given your background as a ${candidate.member.jobRole}${initialProject}, let's begin your technical evaluation. What core architectural principles do you prioritize in production setups?`;
+        setChatHistory([
+          {
+            id: `msg_ai_1`,
+            sender: 'ai',
+            text: errorGreeting,
+            timestamp: new Date().toLocaleTimeString(),
+            topic: 'Technical Foundations',
+            curriculumDay: 1,
+          },
+        ]);
+        setQuestionsAsked(1);
+        setDaysCovered([1]);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -341,23 +358,47 @@ export function App() {
         }
       }
     } catch (err: any) {
-      console.error('Error sending message:', err);
-      const isAbort = err.name === 'AbortError';
+      console.error('API call failed, switching to local interview engine:', err);
+      try {
+        const localSession = getOrCreateSession(sessionId || `sess_${selectedCandidate.member.id}`, selectedCandidate);
+        const localResult = processLocalInterviewStep(localSession, text);
 
-      const fallbackText = isAbort
-        ? 'Thank you for your response. Let\'s continue our evaluation: how do you manage system trade-offs and latency considerations in this configuration?'
-        : 'Thank you for sharing your perspective. Let\'s examine the next area: how do you evaluate performance, fault tolerance, and scalability trade-offs in this architecture?';
-
-      const continuationAiMsg: ChatMessage = {
-        id: `msg_ai_cont_${Date.now()}`,
-        sender: 'ai',
-        text: fallbackText,
-        timestamp: new Date().toLocaleTimeString(),
-        topic: 'System Design & Architecture',
-        curriculumDay: 7,
-        isFollowUp: true,
-      };
-      setChatHistory((prev) => [...prev, continuationAiMsg]);
+        if (localResult.done && localResult.feedback) {
+          setFeedback(localResult.feedback);
+          setCurrentTab('report');
+        } else {
+          const aiMsg: ChatMessage = {
+            id: `msg_ai_${Date.now()}`,
+            sender: 'ai',
+            text: localResult.reply,
+            timestamp: new Date().toLocaleTimeString(),
+            topic: localResult.topic,
+            curriculumDay: localResult.curriculumDay,
+            isFollowUp: localResult.isFollowUp,
+            isClarification: localResult.isClarificationRequest,
+          };
+          setChatHistory((prev) => [...prev, aiMsg]);
+          if (localResult.questionNumber !== undefined) setQuestionsAsked(localResult.questionNumber);
+          if (localResult.curriculumDay && !daysCovered.includes(localResult.curriculumDay)) {
+            setDaysCovered((prev) => [...prev, localResult.curriculumDay]);
+          }
+          if (localResult.topic && !topicsCovered.includes(localResult.topic)) {
+            setTopicsCovered((prev) => [...prev, localResult.topic]);
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback error:', fallbackErr);
+        const fallbackAiMsg: ChatMessage = {
+          id: `msg_ai_cont_${Date.now()}`,
+          sender: 'ai',
+          text: 'Thank you for your response. Let\'s continue our evaluation: how do you manage system trade-offs and latency considerations in this configuration?',
+          timestamp: new Date().toLocaleTimeString(),
+          topic: 'System Design & Architecture',
+          curriculumDay: 7,
+          isFollowUp: true,
+        };
+        setChatHistory((prev) => [...prev, fallbackAiMsg]);
+      }
     } finally {
       setIsGenerating(false);
     }
